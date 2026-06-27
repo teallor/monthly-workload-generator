@@ -1,0 +1,10 @@
+{
+  "teacher_name": "黄佳豪",
+  "teacher_aliases": ["黄"],
+  "target_month": "",
+  "template_keyword": "工作量表",
+  "input_dir": ".",
+  "output_dir": "output",
+  "enable_ocr": false,
+  "require_confirm_before_write": true
+}

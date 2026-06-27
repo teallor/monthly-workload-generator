@@ -1,0 +1,38 @@
+.venv/
+__pycache__/
+parsers/__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+*.tmp
+*.temp
+Thumbs.db
+Desktop.ini
+.DS_Store
+~$*
+
+# Generated previews, audit snapshots and final workbooks contain business data.
+# Keep them locally; use a sanitized examples/ folder for repository samples.
+output/
+输出/
+output_final_check/
+tmp/
+materials/
+
+# Real Office/image inputs and manually verified sidecars are business data.
+# Sanitized repository fixtures may be placed under examples/.
+*.doc
+*.docx
+*.pdf
+*.xls
+*.xlsx
+*.jpg
+*.jpeg
+*.png
+*.jpg.records.json
+*.jpeg.records.json
+*.png.records.json
+!examples/**
