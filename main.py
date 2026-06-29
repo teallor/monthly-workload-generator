@@ -4,6 +4,7 @@ import argparse
 import csv
 import json
 import re
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -12,7 +13,8 @@ from parsers.common import CourseRecord
 from preview import assign_targets, write_previews
 from rules import classify
 from workload_writer import (
-    build_output_name, build_target_title, inspect_template, locate_template, write_workbook,
+    build_output_name, build_target_title, inspect_template, locate_template, unique_output_path,
+    write_workbook,
 )
 
 
@@ -142,6 +144,10 @@ def load_preview_snapshot(month_dir: Path, target_month: str, template: Path) ->
 
 
 def main():
+    if "--gui" in sys.argv:
+        from gui_app import launch
+        launch()
+        return
     parser = argparse.ArgumentParser(description="按任意目标月份自动解析并预览/填入工作量表")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--preview", action="store_true", help="只生成预览，不修改Excel")
@@ -150,6 +156,10 @@ def main():
     parser.add_argument("--template", type=Path, help="工作量表模板路径")
     parser.add_argument("--input-dir", type=Path, help="课程依据文件夹")
     parser.add_argument("--output-dir", type=Path, help="预览及最终文件输出目录")
+    parser.add_argument(
+        "--enable-ocr", "--ocr", dest="enable_ocr", action="store_true",
+        help="启用 RapidOCR 识别 JPG/PNG 照片课表",
+    )
     parser.add_argument("--config", type=Path, default=Path("config.json"), help="配置文件")
     args = parser.parse_args()
 
@@ -188,7 +198,7 @@ def main():
                 f"- {r.date} {r.course_name}: {r.confirmation_note or '需要人工确认'}" for r in unresolved
             )
             raise SystemExit("存在未确认课程，禁止写入 Excel。请先更新 preview 对应解析记录：\n" + details)
-        output = month_output_dir / build_output_name(template.name, year, month)
+        output = unique_output_path(month_output_dir / build_output_name(template.name, year, month))
         title = build_target_title(layout["title"], year, month)
         print("\n最终写入前确认")
         print(f"目标月份：{target_month}")
@@ -209,11 +219,24 @@ def main():
         return
 
     records, parser_warnings, scanned = parse_sources(
-        input_dir, year, template, output_dir, bool(config.get("enable_ocr", False)), config["teacher_name"]
+        input_dir, year, month, template, output_dir,
+        bool(args.enable_ocr or config.get("enable_ocr", False)), config["teacher_name"]
     )
     records = classify_and_filter(records, config["teacher_name"], config.get("teacher_aliases", []), year, month)
     capacity_warnings = assign_targets(records, layout)
     warnings = parser_warnings + capacity_warnings
+    ocr_log_lines = []
+    if args.enable_ocr or config.get("enable_ocr", False):
+        debug_dir = output_dir / "ocr_debug"
+        ocr_log_lines.append(f"OCR调试目录: {debug_dir}")
+        for text_file in sorted(debug_dir.glob("*_ocr文本.txt")):
+            try:
+                ocr_log_lines.extend([
+                    f"OCR原始文本 [{text_file.name}]:",
+                    text_file.read_text(encoding="utf-8").strip(),
+                ])
+            except OSError as exc:
+                ocr_log_lines.append(f"OCR文本读取失败 [{text_file.name}]: {exc}")
     log_lines = [
         f"目标月份: {target_month}", f"月份推断: {inference}", f"教师: {config['teacher_name']}",
         f"模板: {template}", f"工作表: {layout['sheet']}", f"月份单元格: {layout['title_cell']}",
@@ -223,6 +246,7 @@ def main():
         f"待写入: {sum(r.status == '待写入' for r in records)}",
         f"参考: {sum(r.status == '参考' for r in records)}",
         f"排除: {sum(r.status == '排除' for r in records)}",
+        *ocr_log_lines,
         *[f"警告: {warning}" for warning in warnings],
     ]
     paths = write_previews(month_output_dir, target_month, records, log_lines, template)

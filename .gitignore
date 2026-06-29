@@ -1,14 +1,24 @@
 .venv/
+venv/
+env/
+.env
 __pycache__/
+build/
+dist/
+*.spec.bak
 parsers/__pycache__/
 *.pyc
 *.pyo
+*.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 *.log
 *.tmp
 *.temp
+*.bak
+*.key
+*.token
 Thumbs.db
 Desktop.ini
 .DS_Store
@@ -19,8 +29,15 @@ Desktop.ini
 output/
 输出/
 output_final_check/
+output_no_ocr/
+output_ocr/
+output_ocr_probe/
 tmp/
 materials/
+workspace/
+app_settings.json
+release/
+temp_release_test/
 
 # Real Office/image inputs and manually verified sidecars are business data.
 # Sanitized repository fixtures may be placed under examples/.
@@ -29,6 +46,8 @@ materials/
 *.pdf
 *.xls
 *.xlsx
+*.xlsm
+*.csv
 *.jpg
 *.jpeg
 *.png
@@ -36,3 +55,12 @@ materials/
 *.jpeg.records.json
 *.png.records.json
 !examples/**
+
+# Private local archives and real materials must never be published.
+local_private/
+archive_private/
+真实材料/
+原始材料/
+测试真实数据/
+private/
+secrets/

@@ -87,6 +87,18 @@ def build_output_name(template_name: str, year: int, month: int) -> str:
     return f"{path.stem}（{replacement}）{path.suffix}"
 
 
+def unique_output_path(output: Path) -> Path:
+    """Return a non-existing sibling path without overwriting an earlier workbook."""
+    if not output.exists():
+        return output
+    number = 1
+    while True:
+        candidate = output.with_name(f"{output.stem}_{number}{output.suffix}")
+        if not candidate.exists():
+            return candidate
+        number += 1
+
+
 def write_workbook(template: Path, output: Path, title: str, records: list, layout: dict) -> dict:
     capacity = layout["data_end_row"] - layout["data_start_row"] + 1
     training_count = sum(r.category == "培训" for r in records)
@@ -99,6 +111,7 @@ def write_workbook(template: Path, output: Path, title: str, records: list, layo
             "是否允许复制格式扩展行？"
         )
     output.parent.mkdir(parents=True, exist_ok=True)
+    output = unique_output_path(output)
     if any(record.hours is None or record.needs_confirmation for record in records):
         raise RuntimeError("存在课时或分类未确认的课程，禁止写入 Excel")
     grouped_records = [record for record in records if record.category == "培训"]

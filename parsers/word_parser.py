@@ -116,21 +116,37 @@ def parse_docx(path: Path, year: int) -> list[CourseRecord]:
 
 def parse_doc(path: Path, year: int) -> list[CourseRecord]:
     try:
+        import pythoncom
         import win32com.client
     except ImportError:
+        pythoncom = None
         win32com = None
     with tempfile.TemporaryDirectory(prefix="workload_doc_") as folder:
         converted = Path(folder) / f"{path.stem}.docx"
         if win32com is not None:
-            word = win32com.client.DispatchEx("Word.Application")
-            word.Visible = False
-            word.DisplayAlerts = 0
-            doc = word.Documents.Open(str(path.resolve()), ReadOnly=True)
+            word = None
+            doc = None
+            if pythoncom is not None:
+                pythoncom.CoInitialize()
             try:
+                word = win32com.client.DispatchEx("Word.Application")
+                word.Visible = False
+                word.DisplayAlerts = 0
+                doc = word.Documents.Open(str(path.resolve()), ReadOnly=True)
                 doc.SaveAs2(str(converted), FileFormat=16)
             finally:
-                doc.Close(False)
-                word.Quit()
+                if doc is not None:
+                    try:
+                        doc.Close(False)
+                    except Exception:
+                        pass
+                if word is not None:
+                    try:
+                        word.Quit()
+                    except Exception:
+                        pass
+                if pythoncom is not None:
+                    pythoncom.CoUninitialize()
         else:
             bridge = Path(__file__).resolve().parents[1] / "office_bridge.ps1"
             subprocess.run([

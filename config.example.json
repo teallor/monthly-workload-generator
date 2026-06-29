@@ -1,0 +1,10 @@
+{
+  "teacher_name": "教师姓名",
+  "teacher_aliases": ["教师简称"],
+  "target_month": "",
+  "template_keyword": "工作量表",
+  "input_dir": ".",
+  "output_dir": "output",
+  "enable_ocr": false,
+  "require_confirm_before_write": true
+}
