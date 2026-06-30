@@ -36,7 +36,18 @@ tmp/
 materials/
 workspace/
 app_settings.json
-release/
+# Local release history and binaries stay out of Git. Only sanitized release
+# manifests/instructions under release/latest may be tracked; EXE/ZIP files are
+# distributed as GitHub Release assets instead of normal repository blobs.
+release/*
+!release/README.md
+!release/latest/
+release/latest/*
+!release/latest/RELEASE_CHECKLIST.md
+!release/latest/使用说明.md
+!release/latest/SHA256.txt
+!release/backup/
+release/backup/*
 temp_release_test/
 
 # Real Office/image inputs and manually verified sidecars are business data.

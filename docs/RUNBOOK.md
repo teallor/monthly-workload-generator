@@ -11,7 +11,7 @@
 2. 双击 `月度工作量表自动生成器.exe`。
 3. 上传 `.xls/.xlsx` 工作量表模板。
 4. 上传 Word、PDF、Excel 或照片课表。
-5. 设置目标年月和教师；照片需自动识别时勾选 OCR。
+5. 设置目标年月和教师。上传图片后，程序会在生成预览时自动执行 OCR，无需勾选开关。
 6. 点击“生成预览”，核对课程、课时、分类、教师和排除原因。
 7. 处理所有待确认项后，点击“生成最终 Excel”。
 8. 输出位于 `workspace/output/<YYYY-MM>/`。
@@ -38,10 +38,9 @@ python main.py --target-month 2026-08 --write --input-dir ".\materials\2026-08" 
 
 CLI 写入只有输入 `y` 才继续。
 
-## OCR 自检
+## 图片 OCR
 
-在 GUI 点击“检测 OCR”或“工具 → OCR 自检”。OCR 结果必须核对 preview。
-OCR 评分使用用户选择的目标月份，不固定为 7 月。
+GUI 检测到 JPG/JPEG/PNG 材料后自动执行 OCR，没有额外开关或检测按钮。OCR评分使用用户选择的目标月份；识别结果仍必须核对 preview。
 
 ## 打包
 

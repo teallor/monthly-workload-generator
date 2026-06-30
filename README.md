@@ -1,10 +1,10 @@
 # 月度工作量表自动生成器（GUI + CLI）
 
-当前正式版本：**v1.0 正式验收版**。正式用户入口为中文GUI/EXE；朋友端到端测试已通过。v1.0已经冻结，后续新需求进入v1.1。
+当前稳定版本：**v1.0.0**（本地发布候选，等待同步 GitHub）。正式用户入口为中文 GUI/EXE；朋友端到端测试已通过。v1.0.0 冻结后只修复严重缺陷，后续功能进入 v1.1.0。
 
 ## 原创作者
 
-Rafael_Huang
+原创作者：Rafael_Huang
 
 ## 开发方式
 
@@ -12,7 +12,7 @@ Rafael_Huang
 
 ## 当前版本
 
-v1.0 正式验收版，已完成正式验收及朋友端到端测试。
+v1.0.0 稳定可用版，已完成正式验收及朋友端到端测试；GitHub 发布完成前以本地 `release/latest/` 为准。
 
 本程序用于生成任意年份、任意月份的个人工作量表。它扫描课程通知、课程表、PDF、Excel 和图片依据，只提取目标教师在目标月份内的课程，区分培训与考核，并基于原 Excel 模板生成新文件。
 
@@ -42,7 +42,7 @@ python main.py --gui
 1. 点击“上传工作量表模板”，选择 `.xls` 或 `.xlsx`。
 2. 点击“上传课表/通知材料”多选文件，或点击“导入材料文件夹”。
 3. 选择年份、月份，确认教师姓名和别名。
-4. 点击“生成预览”，检查待写入、排除课程、考核汇总和解析日志；确认后点击“生成最终 Excel”。
+4. 点击“生成预览”，检查待写入、排除课程、考核汇总和解析日志；确认后点击“生成最终 Excel”。上传 JPG/JPEG/PNG 后，GUI 会自动执行 OCR，不需要额外开关或检测按钮。
 
 材料列表会显示文件名、类型、大小、解析状态和本地路径。需要确认的课程用醒目颜色显示，确认完成前会阻止生成 Excel。生成成功后可直接打开 Excel 或输出文件夹。
 
@@ -86,7 +86,7 @@ workspace/
 
 - 工作量表模板：`.xls`、`.xlsx`
 - 课程依据：`.doc`、`.docx`、`.pdf`、`.xls`、`.xlsx`
-- 图片课表：`.jpg`、`.jpeg`、`.png`（可选 OCR，默认关闭）
+- 图片课表：`.jpg`、`.jpeg`、`.png`（GUI 自动 OCR；CLI 需显式启用）
 
 旧版 `.doc`、`.xls` 及最终工作量表写入依赖本机 Microsoft Word/Excel。程序优先使用 Windows Office COM，以保留模板格式。
 
@@ -115,7 +115,7 @@ GUI 用户不需要自己放置或整理目录：
 - “上传课表/通知材料”：一次选择多个 Word、PDF、Excel 或图片文件。
 - “导入材料文件夹”：递归导入整个文件夹；不支持的文件会在列表中标为“不支持”。
 - 删除或清空材料列表只影响当前列表，不会删除原始文件。
-- 下次启动会恢复上次模板、材料列表、输出目录、年月、教师、别名和 OCR 开关；路径失效时会明确提示重新选择。
+- 下次启动会恢复上次模板、材料列表、输出目录、年月、教师和别名；路径失效时会明确提示重新选择。
 
 ## CLI 文件如何放置
 
@@ -173,7 +173,7 @@ python main.py --target-month 2026-07 --preview --ocr --output-dir output_ocr
 
 `--enable-ocr` 与 `--ocr` 等价。未传开关时，JPG/PNG 只导入但不自动识别；启用后会尝试 0°、90°、180°、270° 四个方向，并依据标题、月份、实训、总复习、教师等关键词及版面位置选择最佳方向。
 
-GUI 可通过“工具 → OCR 自检”或设置区“检测 OCR”检查 RapidOCR、ONNX Runtime、OpenCV、NumPy、Pillow、模型文件及实际模型会话。正式 onefile EXE 已内置这些组件，不需要朋友另装 Python 或 Tesseract。
+GUI 在检测到图片材料时自动调用 RapidOCR。正式 onefile EXE 已内置 RapidOCR、ONNX Runtime、OpenCV、NumPy、Pillow及模型文件，不需要朋友另装 Python 或 Tesseract。
 
 只输入 `8月` 时，程序优先从已选模板文件名推断年份；模板不含年份时使用当前年份，并在解析日志中明确记录推断依据。
 
@@ -265,7 +265,7 @@ OCR 原始文本和调试路径也会写入“解析日志”。低置信度候�
 - **找不到模板**：确认模板是 `.xls/.xlsx`，且文件名包含配置中的 `template_keyword` 和 `teacher_name`；也可以传 `--template`。
 - **找到多个模板**：程序不会猜测，请使用 `--template "文件名.xls"`。
 - **无法解析 `.doc` 或写入 `.xls`**：确认 Windows 已安装 Microsoft Word 和 Excel，并关闭正在编辑的目标文件。
-- **图片没有识别**：默认 `enable_ocr=false`。GUI 勾选“启用图片 OCR”，或 CLI 添加 `--enable-ocr`。照片模糊、反光、严重透视或表格裁切时可使用手工补录。
+- **图片没有识别**：GUI 上传图片后会自动 OCR；失败时查看解析日志，并检查照片是否模糊、反光、严重透视或裁切不完整，也可以使用手工补录。CLI仍可使用 `--enable-ocr` 明确开启图片识别。
 - **教师简称未命中**：检查 `config.json` 中的 `teacher_aliases`。`黄`、`黄/王`、`黄、王` 均可命中黄佳豪。
 - **write 被阻止**：先运行同月份 preview；日期、分类、课时或图片 OCR 仍待确认时，程序不会写 Excel。
 - **教学槽位不足**：程序会报告培训行数或考核汇总槽位不足，未经确认不会扩展模板。
@@ -309,12 +309,16 @@ pyinstaller --noconfirm --clean gui_app.spec
 
 ```text
 release/
-  月度工作量表自动生成器.exe
-  启动说明.txt
-  使用说明.md
-  示例材料放这里.txt
-  月度工作量表自动生成器_发布版.zip
+  latest/
+    月度工作量表自动生成器.exe
+    RELEASE_CHECKLIST.md
+    使用说明.md
+    SHA256.txt
+  backup/
+    月度工作量表自动生成器_old.exe
 ```
+
+EXE 和 ZIP 不提交到普通 Git 历史，而作为 GitHub Release 附件发布。版本记录见 [`docs/RELEASE_HISTORY.md`](docs/RELEASE_HISTORY.md)，小白说明见 [`docs/USER_MANUAL.md`](docs/USER_MANUAL.md)，开发交接见 [`docs/DEV_HANDOFF.md`](docs/DEV_HANDOFF.md)。
 
 朋友解压后双击 EXE 即可，不需要安装 Python。为了读取旧版 `.doc/.xls` 并严格保持 `.xls` 格式，建议安装 Microsoft Word 和 Excel；仅 WPS 环境可能无法完整支持 Office COM。
 
