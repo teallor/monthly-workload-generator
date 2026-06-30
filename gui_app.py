@@ -14,11 +14,11 @@ from tkinter import filedialog, messagebox, ttk
 
 from main import load_config
 from parsers.common import CourseRecord
-from parsers.ocr_parser import ocr_self_check
 from workload_service import generate_excel, generate_preview
 from workload_writer import inspect_template
 from workspace_manager import (
     SUPPORTED_MATERIALS,
+    IMAGE_SUFFIXES,
     collect_folder_files,
     copy_without_overwrite,
     import_material_files,
@@ -35,6 +35,14 @@ RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
 APP_DIR = Path(sys.executable).resolve().parent if getattr(sys, "frozen", False) else Path(__file__).resolve().parent
 WORKSPACE = APP_DIR / "workspace"
 SETTINGS_PATH = APP_DIR / "app_settings.json"
+
+UI = {
+    "primary": "#155EEF", "primary_hover": "#0F4FD9", "success": "#168A45",
+    "danger": "#C83B3B", "app_bg": "#F4F6F9", "card": "#FFFFFF",
+    "border": "#E2E7EE", "text": "#172033", "muted": "#667085",
+    "weak": "#98A2B3", "table_head": "#F7F9FC", "selection": "#E8F1FF",
+    "header": "#123D68", "header_subtitle": "#D5E4F2",
+}
 
 
 def split_aliases(value: str) -> list[str]:
@@ -61,8 +69,9 @@ class WorkloadGui:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title(APP_NAME)
-        self.root.geometry("1280x820")
-        self.root.minsize(1080, 700)
+        self.root.geometry("1360x860")
+        self.root.minsize(1120, 720)
+        self.root.configure(background=UI["app_bg"])
         self.config = self._load_config()
         self.settings = load_settings(SETTINGS_PATH)
         self.events: queue.Queue = queue.Queue()
@@ -91,19 +100,40 @@ class WorkloadGui:
 
     def _build_style(self):
         style = ttk.Style(self.root)
-        if "vista" in style.theme_names():
-            style.theme_use("vista")
-        style.configure("Header.TFrame", background="#174A7E")
-        style.configure("AppTitle.TLabel", background="#174A7E", foreground="white", font=("Microsoft YaHei UI", 18, "bold"))
-        style.configure("Subtitle.TLabel", background="#174A7E", foreground="#E4EEF8", font=("Microsoft YaHei UI", 10))
-        style.configure("Flow.TLabel", background="#E9F2FA", foreground="#174A7E", font=("Microsoft YaHei UI", 10, "bold"), padding=(12, 7))
-        style.configure("Step.TLabelframe.Label", font=("Microsoft YaHei UI", 11, "bold"), foreground="#174A7E")
-        style.configure("Primary.TButton", font=("Microsoft YaHei UI", 10, "bold"), padding=(15, 8))
-        style.configure("Upload.TButton", font=("Microsoft YaHei UI", 10, "bold"), padding=(12, 10))
-        style.configure("Hint.TLabel", foreground="#666666", font=("Microsoft YaHei UI", 8))
-        style.configure("Value.TLabel", foreground="#222222", font=("Microsoft YaHei UI", 9))
-        style.configure("Treeview", rowheight=25, font=("Microsoft YaHei UI", 9))
-        style.configure("Treeview.Heading", font=("Microsoft YaHei UI", 9, "bold"))
+        if "clam" in style.theme_names():
+            style.theme_use("clam")
+        style.configure(".", font=("Microsoft YaHei UI", 9), background=UI["card"], foreground=UI["text"])
+        style.configure("App.TFrame", background=UI["app_bg"])
+        style.configure("Card.TFrame", background=UI["card"])
+        style.configure("Header.TFrame", background=UI["header"])
+        style.configure("Footer.TFrame", background=UI["card"])
+        style.configure("AppTitle.TLabel", background=UI["header"], foreground="white", font=("Microsoft YaHei UI", 20, "bold"))
+        style.configure("Subtitle.TLabel", background=UI["header"], foreground=UI["header_subtitle"], font=("Microsoft YaHei UI", 9))
+        style.configure("Flow.TLabel", background="#E6F0FA", foreground=UI["header"], font=("Microsoft YaHei UI", 9, "bold"), padding=(14, 7))
+        style.configure("CardTitle.TLabel", background=UI["card"], foreground=UI["text"], font=("Microsoft YaHei UI", 13, "bold"))
+        style.configure("Hint.TLabel", background=UI["card"], foreground=UI["muted"], font=("Microsoft YaHei UI", 8))
+        style.configure("Value.TLabel", background=UI["card"], foreground=UI["text"], font=("Microsoft YaHei UI", 9))
+        style.configure("Status.TLabel", background=UI["card"], foreground=UI["muted"], padding=(10, 6))
+        style.configure("Step.TLabelframe", background=UI["card"], bordercolor=UI["border"], borderwidth=1, relief="solid")
+        style.configure("Step.TLabelframe.Label", background=UI["card"], foreground=UI["header"], font=("Microsoft YaHei UI", 11, "bold"), padding=(2, 2))
+        style.configure("TEntry", padding=(7, 5), fieldbackground="white", bordercolor=UI["border"])
+        style.configure("TCombobox", padding=(6, 4), fieldbackground="white", bordercolor=UI["border"])
+        style.configure("Primary.TButton", background=UI["primary"], foreground="white", borderwidth=0, font=("Microsoft YaHei UI", 10, "bold"), padding=(16, 9))
+        style.map("Primary.TButton", background=[("active", UI["primary_hover"]), ("disabled", "#D5DCE6")], foreground=[("disabled", "#8B95A5")])
+        style.configure("Success.TButton", background=UI["success"], foreground="white", borderwidth=0, font=("Microsoft YaHei UI", 10, "bold"), padding=(16, 9))
+        style.map("Success.TButton", background=[("active", "#11763A"), ("disabled", "#D5DCE6")], foreground=[("disabled", "#8B95A5")])
+        style.configure("Secondary.TButton", background="white", foreground=UI["text"], bordercolor=UI["border"], padding=(12, 8))
+        style.map("Secondary.TButton", background=[("active", "#F2F5F9")])
+        style.configure("Danger.TButton", background="white", foreground=UI["danger"], bordercolor="#F0CACA", padding=(10, 7))
+        style.map("Danger.TButton", background=[("active", "#FFF1F1")])
+        style.configure("Upload.TButton", background="#EAF2FF", foreground=UI["primary"], bordercolor="#C7D9FA", font=("Microsoft YaHei UI", 9, "bold"), padding=(12, 9))
+        style.map("Upload.TButton", background=[("active", "#DCE9FF")])
+        style.configure("TNotebook", background=UI["card"], borderwidth=0)
+        style.configure("TNotebook.Tab", background="#F0F3F7", foreground=UI["muted"], padding=(15, 8), font=("Microsoft YaHei UI", 9))
+        style.map("TNotebook.Tab", background=[("selected", "white")], foreground=[("selected", UI["primary"])])
+        style.configure("Treeview", background="white", fieldbackground="white", foreground=UI["text"], rowheight=31, bordercolor=UI["border"], borderwidth=0, font=("Microsoft YaHei UI", 9))
+        style.map("Treeview", background=[("selected", UI["selection"])], foreground=[("selected", UI["text"])])
+        style.configure("Treeview.Heading", background=UI["table_head"], foreground=UI["text"], relief="flat", padding=(6, 7), font=("Microsoft YaHei UI", 9, "bold"))
 
     def _build_variables(self):
         today = date.today()
@@ -117,11 +147,10 @@ class WorkloadGui:
         self.month_var = tk.StringVar(value=f"{today.month:02d}")
         self.teacher_var = tk.StringVar(value=self.config.get("teacher_name", "黄佳豪"))
         self.aliases_var = tk.StringVar(value=",".join(self.config.get("teacher_aliases", ["黄"])))
-        self.ocr_var = tk.BooleanVar(value=bool(self.config.get("enable_ocr", False)))
         self.flow_var = tk.StringVar(value="待导入材料")
         self.status_var = tk.StringVar(value="就绪")
         self.summary_var = tk.StringVar(value="尚未生成预览")
-        self.material_count_var = tk.StringVar(value="已导入 0 个材料")
+        self.material_count_var = tk.StringVar(value="尚未上传材料，可选择多个文件或整个文件夹")
 
     def _build_menu(self):
         menu = tk.Menu(self.root)
@@ -139,8 +168,6 @@ class WorkloadGui:
         tool_menu.add_separator()
         tool_menu.add_command(label="清空材料列表", command=self.clear_materials)
         tool_menu.add_command(label="清空日志", command=self.clear_log)
-        tool_menu.add_separator()
-        tool_menu.add_command(label="OCR 自检", command=self.start_ocr_self_check)
         menu.add_cascade(label="工具", menu=tool_menu)
         help_menu = tk.Menu(menu, tearoff=False)
         help_menu.add_command(label="使用说明", command=self.show_help)
@@ -149,7 +176,7 @@ class WorkloadGui:
         self.root.configure(menu=menu)
 
     def _build_ui(self):
-        header = ttk.Frame(self.root, style="Header.TFrame", padding=(18, 12))
+        header = ttk.Frame(self.root, style="Header.TFrame", padding=(22, 15))
         header.pack(fill="x")
         title = ttk.Frame(header, style="Header.TFrame")
         title.pack(side="left", fill="x", expand=True)
@@ -157,19 +184,19 @@ class WorkloadGui:
         ttk.Label(title, text="自动识别 Word / PDF / Excel / 图片课表，一键生成指定月份工作量表", style="Subtitle.TLabel").pack(anchor="w", pady=(3, 0))
         ttk.Label(header, textvariable=self.flow_var, style="Flow.TLabel").pack(side="right", padx=(15, 0))
 
-        body = ttk.Panedwindow(self.root, orient="horizontal")
-        body.pack(fill="both", expand=True, padx=12, pady=10)
-        left_holder = ttk.Frame(body)
-        left_canvas = tk.Canvas(left_holder, width=400, highlightthickness=0)
+        body = ttk.Panedwindow(self.root, orient="horizontal", style="App.TPanedwindow")
+        body.pack(fill="both", expand=True, padx=18, pady=(16, 12))
+        left_holder = ttk.Frame(body, style="App.TFrame")
+        left_canvas = tk.Canvas(left_holder, width=385, highlightthickness=0, background=UI["app_bg"])
         left_scroll = ttk.Scrollbar(left_holder, orient="vertical", command=left_canvas.yview)
-        left = ttk.Frame(left_canvas, padding=(2, 0, 8, 0))
+        left = ttk.Frame(left_canvas, style="App.TFrame", padding=(0, 0, 12, 0))
         left_window = left_canvas.create_window((0, 0), window=left, anchor="nw")
         left.bind("<Configure>", lambda _: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
         left_canvas.bind("<Configure>", lambda event: left_canvas.itemconfigure(left_window, width=event.width))
         left_canvas.configure(yscrollcommand=left_scroll.set)
         left_canvas.pack(side="left", fill="both", expand=True)
         left_scroll.pack(side="right", fill="y")
-        right = ttk.Frame(body)
+        right = ttk.Frame(body, style="Card.TFrame", padding=(16, 13))
         body.add(left_holder, weight=0)
         body.add(right, weight=1)
 
@@ -179,22 +206,23 @@ class WorkloadGui:
         self._build_action_step(left)
         self._build_results(right)
 
-        footer = ttk.Frame(self.root, padding=(12, 7))
+        footer = ttk.Frame(self.root, style="Footer.TFrame", padding=(18, 10))
         footer.pack(fill="x")
-        ttk.Label(footer, textvariable=self.status_var, relief="sunken", padding=(9, 5)).pack(side="left", fill="x", expand=True)
-        self.exit_button = ttk.Button(footer, text="退出", command=self.close)
-        self.open_dir_button = ttk.Button(footer, text="打开输出目录", command=self.open_output_dir)
-        self.write_button = ttk.Button(footer, text="生成最终 Excel", style="Primary.TButton", command=self.confirm_write, state="disabled")
+        ttk.Label(footer, textvariable=self.status_var, style="Status.TLabel").pack(side="left", fill="x", expand=True)
+        self.exit_button = ttk.Button(footer, text="退出", style="Secondary.TButton", command=self.close)
+        self.open_dir_button = ttk.Button(footer, text="打开输出目录", style="Secondary.TButton", command=self.open_output_dir)
+        self.write_button = ttk.Button(footer, text="生成最终 Excel", style="Success.TButton", command=self.confirm_write, state="disabled")
         self.preview_button = ttk.Button(footer, text="生成预览", style="Primary.TButton", command=self.start_preview)
         for button in (self.exit_button, self.open_dir_button, self.write_button, self.preview_button):
             button.pack(side="right", padx=(7, 0))
 
     def _build_template_step(self, parent):
-        frame = ttk.LabelFrame(parent, text="步骤 1　上传工作量表模板", style="Step.TLabelframe", padding=10)
-        frame.pack(fill="x", pady=(0, 8))
+        frame = ttk.LabelFrame(parent, text="步骤 1　选择工作量表模板", style="Step.TLabelframe", padding=14)
+        frame.pack(fill="x", pady=(0, 12))
+        ttk.Label(frame, text="选择现有 .xls / .xlsx 模板，程序会保留原版式。", style="Hint.TLabel").pack(anchor="w", pady=(0, 9))
         self.upload_template_button = ttk.Button(frame, text="上传工作量表模板", style="Upload.TButton", command=self.upload_template)
         self.upload_template_button.pack(fill="x", pady=(0, 8))
-        info = ttk.Frame(frame)
+        info = ttk.Frame(frame, style="Card.TFrame")
         info.pack(fill="x")
         for row, (label, variable) in enumerate((("文件名", self.template_name_var), ("模板月份", self.template_month_var), ("识别状态", self.template_status_var))):
             ttk.Label(info, text=f"{label}：", width=10).grid(row=row, column=0, sticky="nw", pady=1)
@@ -202,17 +230,19 @@ class WorkloadGui:
         ttk.Label(info, text="文件路径：", width=10).grid(row=3, column=0, sticky="nw", pady=1)
         ttk.Entry(info, textvariable=self.template_path_var, state="readonly").grid(row=3, column=1, sticky="ew", pady=1)
         info.columnconfigure(1, weight=1)
-        actions = ttk.Frame(frame)
+        actions = ttk.Frame(frame, style="Card.TFrame")
         actions.pack(fill="x", pady=(8, 0))
-        ttk.Button(actions, text="更换模板", command=self.upload_template).pack(side="left")
-        ttk.Button(actions, text="打开所在文件夹", command=self.open_template_folder).pack(side="left", padx=5)
-        ttk.Button(actions, text="清除模板", command=self.clear_template).pack(side="left")
-        ttk.Button(actions, text="按模板生成下月", command=self.set_month_after_template).pack(side="left", padx=(5, 0))
+        actions.columnconfigure((0, 1), weight=1)
+        ttk.Button(actions, text="更换模板", style="Secondary.TButton", command=self.upload_template).grid(row=0, column=0, sticky="ew", padx=(0, 4), pady=(0, 5))
+        ttk.Button(actions, text="打开文件夹", style="Secondary.TButton", command=self.open_template_folder).grid(row=0, column=1, sticky="ew", padx=(4, 0), pady=(0, 5))
+        ttk.Button(actions, text="清除模板", style="Danger.TButton", command=self.clear_template).grid(row=1, column=0, sticky="ew", padx=(0, 4))
+        ttk.Button(actions, text="按模板生成下月", style="Secondary.TButton", command=self.set_month_after_template).grid(row=1, column=1, sticky="ew", padx=(4, 0))
 
     def _build_material_step(self, parent):
-        frame = ttk.LabelFrame(parent, text="步骤 2　上传课表依据材料", style="Step.TLabelframe", padding=10)
-        frame.pack(fill="both", pady=(0, 8))
-        buttons = ttk.Frame(frame)
+        frame = ttk.LabelFrame(parent, text="步骤 2　上传课表 / 通知材料", style="Step.TLabelframe", padding=14)
+        frame.pack(fill="both", pady=(0, 12))
+        ttk.Label(frame, text="支持 Word、PDF、Excel 和图片；图片会自动 OCR。", style="Hint.TLabel").pack(anchor="w", pady=(0, 9))
+        buttons = ttk.Frame(frame, style="Card.TFrame")
         buttons.pack(fill="x")
         self.upload_material_button = ttk.Button(buttons, text="上传课表/通知材料", style="Upload.TButton", command=self.upload_materials)
         self.upload_material_button.pack(side="left", fill="x", expand=True)
@@ -220,7 +250,7 @@ class WorkloadGui:
         self.folder_button.pack(side="left", fill="x", expand=True, padx=(6, 0))
         ttk.Label(frame, textvariable=self.material_count_var, style="Hint.TLabel").pack(anchor="w", pady=(6, 3))
         columns = ("序号", "文件名", "类型", "大小", "状态", "路径")
-        tree_frame = ttk.Frame(frame)
+        tree_frame = ttk.Frame(frame, style="Card.TFrame")
         tree_frame.pack(fill="both", expand=True)
         self.material_tree = ttk.Treeview(tree_frame, columns=columns, show="headings", height=4, selectmode="extended")
         widths = {"序号": 45, "文件名": 165, "类型": 48, "大小": 65, "状态": 70, "路径": 260}
@@ -235,50 +265,47 @@ class WorkloadGui:
         xbar.grid(row=1, column=0, sticky="ew")
         tree_frame.columnconfigure(0, weight=1)
         tree_frame.rowconfigure(0, weight=1)
-        tools = ttk.Frame(frame)
+        tools = ttk.Frame(frame, style="Card.TFrame")
         tools.pack(fill="x", pady=(6, 0))
-        ttk.Button(tools, text="删除选中", command=self.remove_selected_materials).pack(side="left")
-        ttk.Button(tools, text="清空全部", command=self.clear_materials).pack(side="left", padx=5)
-        ttk.Button(tools, text="打开所在位置", command=self.open_material_folder).pack(side="left")
-        manual = ttk.Frame(frame)
+        ttk.Button(tools, text="删除选中", style="Danger.TButton", command=self.remove_selected_materials).pack(side="left")
+        ttk.Button(tools, text="清空全部", style="Secondary.TButton", command=self.clear_materials).pack(side="left", padx=5)
+        ttk.Button(tools, text="打开所在位置", style="Secondary.TButton", command=self.open_material_folder).pack(side="left")
+        manual = ttk.Frame(frame, style="Card.TFrame")
         manual.pack(fill="x", pady=(6, 0))
         ttk.Button(manual, text="手工补录课程", command=self.add_manual_course).pack(side="left", fill="x", expand=True)
 
     def _build_settings_step(self, parent):
-        frame = ttk.LabelFrame(parent, text="步骤 3　设置生成月份和教师", style="Step.TLabelframe", padding=10)
-        frame.pack(fill="x", pady=(0, 8))
-        month = ttk.Frame(frame)
-        month.pack(fill="x", pady=2)
+        frame = ttk.LabelFrame(parent, text="步骤 3　设置月份和教师", style="Step.TLabelframe", padding=14)
+        frame.pack(fill="x", pady=(0, 12))
+        ttk.Label(frame, text="确认目标月份、教师姓名及材料中的简称。", style="Hint.TLabel").pack(anchor="w", pady=(0, 8))
+        month = ttk.Frame(frame, style="Card.TFrame")
+        month.pack(fill="x", pady=4)
         ttk.Label(month, text="生成月份：", width=10).pack(side="left")
         ttk.Combobox(month, textvariable=self.year_var, width=7, state="readonly", values=[str(year) for year in range(date.today().year - 5, date.today().year + 6)]).pack(side="left")
         ttk.Label(month, text="年").pack(side="left", padx=(3, 8))
         ttk.Combobox(month, textvariable=self.month_var, width=5, state="readonly", values=[f"{m:02d}" for m in range(1, 13)]).pack(side="left")
         ttk.Label(month, text="月").pack(side="left", padx=3)
-        teacher = ttk.Frame(frame)
-        teacher.pack(fill="x", pady=2)
+        teacher = ttk.Frame(frame, style="Card.TFrame")
+        teacher.pack(fill="x", pady=4)
         ttk.Label(teacher, text="教师姓名：", width=10).pack(side="left")
         ttk.Entry(teacher, textvariable=self.teacher_var, width=14).pack(side="left")
         ttk.Label(teacher, text="简称/别名：").pack(side="left", padx=(10, 3))
         ttk.Entry(teacher, textvariable=self.aliases_var, width=16).pack(side="left", fill="x", expand=True)
-        ocr_row = ttk.Frame(frame)
-        ocr_row.pack(fill="x", pady=(4, 3))
-        ttk.Checkbutton(ocr_row, text="启用图片 OCR（可选，较慢）", variable=self.ocr_var).pack(side="left")
-        self.ocr_check_button = ttk.Button(ocr_row, text="检测 OCR", command=self.start_ocr_self_check)
-        self.ocr_check_button.pack(side="right")
         ttk.Label(frame, text="黄 = 黄佳豪；黄、王 / 黄/王 均识别为黄佳豪参与\n总复习一天 = 理论8课时；实训一天 = 实训8课时", style="Hint.TLabel", justify="left").pack(anchor="w")
 
     def _build_action_step(self, parent):
-        frame = ttk.LabelFrame(parent, text="步骤 4　生成工作量表", style="Step.TLabelframe", padding=10)
+        frame = ttk.LabelFrame(parent, text="步骤 4　生成工作量表", style="Step.TLabelframe", padding=14)
         frame.pack(fill="x")
-        output = ttk.Frame(frame)
+        ttk.Label(frame, text="先生成预览并核对，再导出最终 Excel。", style="Hint.TLabel").pack(anchor="w", pady=(0, 8))
+        output = ttk.Frame(frame, style="Card.TFrame")
         output.pack(fill="x", pady=(0, 7))
         ttk.Label(output, text="保存位置：").pack(side="left")
         ttk.Entry(output, textvariable=self.output_var, state="readonly").pack(side="left", fill="x", expand=True, padx=4)
         ttk.Button(output, text="更改", command=self.choose_output_dir).pack(side="left")
-        ttk.Label(frame, text="先生成预览并核对结果，确认无误后再生成最终 Excel。", style="Hint.TLabel").pack(anchor="w")
 
     def _build_results(self, parent):
-        ttk.Label(parent, text="结果展示", font=("Microsoft YaHei UI", 12, "bold"), foreground="#174A7E").pack(anchor="w", pady=(0, 5))
+        ttk.Label(parent, text="结果展示", style="CardTitle.TLabel").pack(anchor="w")
+        ttk.Label(parent, text="预览、排除项、考核汇总与解析日志", style="Hint.TLabel").pack(anchor="w", pady=(2, 10))
         notebook = ttk.Notebook(parent)
         notebook.pack(fill="both", expand=True)
         self.preview_tree = self._tree_tab(notebook, "待写入预览", [
@@ -295,18 +322,22 @@ class WorkloadGui:
         self.summary_tree = self._tree_tab(notebook, "考核汇总", [
             ("班级/项目", 300), ("子分类", 80), ("明细日期", 230), ("明细数量", 80), ("汇总课时", 80), ("预计写入位置", 140),
         ])
-        log_frame = ttk.Frame(notebook)
+        log_frame = ttk.Frame(notebook, style="Card.TFrame")
         notebook.add(log_frame, text="解析日志")
-        self.log_text = tk.Text(log_frame, wrap="word", font=("Consolas", 10), padx=8, pady=8)
+        self.log_text = tk.Text(log_frame, wrap="word", font=("Consolas", 10), padx=14, pady=12, relief="flat", background="#FBFCFE", foreground=UI["text"], insertbackground=UI["text"])
         ybar = ttk.Scrollbar(log_frame, orient="vertical", command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=ybar.set)
         self.log_text.pack(side="left", fill="both", expand=True)
         ybar.pack(side="right", fill="y")
-        self.summary_label = ttk.Label(parent, textvariable=self.summary_var, padding=(6, 6), anchor="w")
+        self.log_text.insert("end", "尚未生成解析日志。生成预览后，详细过程会显示在这里。")
+        self.summary_label = ttk.Label(parent, textvariable=self.summary_var, style="Status.TLabel", anchor="w")
         self.summary_label.pack(fill="x")
+        self._set_empty_state(self.preview_tree, "尚未生成预览。请先上传材料并点击「生成预览」。")
+        self._set_empty_state(self.excluded_tree, "暂无被排除课程。")
+        self._set_empty_state(self.summary_tree, "暂无考核汇总。")
 
     def _tree_tab(self, notebook, title, columns):
-        frame = ttk.Frame(notebook)
+        frame = ttk.Frame(notebook, style="Card.TFrame", padding=(1, 8, 1, 1))
         notebook.add(frame, text=title)
         tree = ttk.Treeview(frame, columns=[name for name, _ in columns], show="headings")
         xbar = ttk.Scrollbar(frame, orient="horizontal", command=tree.xview)
@@ -320,7 +351,14 @@ class WorkloadGui:
         xbar.grid(row=1, column=0, sticky="ew")
         frame.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
+        tree.empty_label = ttk.Label(
+            frame, text="", style="Hint.TLabel", anchor="center", justify="center",
+        )
         return tree
+
+    def _set_empty_state(self, tree, message):
+        tree.empty_label.configure(text=message)
+        tree.empty_label.place(relx=0.5, rely=0.5, anchor="center")
 
     def _target_month(self) -> str:
         return f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}"
@@ -424,9 +462,7 @@ class WorkloadGui:
     def _on_materials(self, payload):
         for item in payload["added"]:
             path = Path(item["path"])
-            if path.suffix.lower() in {".jpg", ".jpeg", ".png"} and not self.ocr_var.get():
-                item["status"] = "图片已导入，未启用 OCR，需手工补录"
-            elif path.suffix.lower() in {".jpg", ".jpeg", ".png"} and self.ocr_var.get():
+            if path.suffix.lower() in IMAGE_SUFFIXES:
                 item["status"] = "待 OCR 解析"
         self.materials.extend(payload["added"])
         self._refresh_material_tree()
@@ -445,7 +481,10 @@ class WorkloadGui:
             item.get("supported", False) and (item.get("is_manual") or Path(item["path"]).exists())
             for item in self.materials
         )
-        self.material_count_var.set(f"已导入 {len(self.materials)} 个材料，其中 {supported} 个可解析")
+        self.material_count_var.set(
+            f"已导入 {len(self.materials)} 个材料，其中 {supported} 个可解析"
+            if self.materials else "尚未上传材料，可选择多个文件或整个文件夹"
+        )
 
     def remove_selected_materials(self):
         selected = sorted((int(iid) for iid in self.material_tree.selection()), reverse=True)
@@ -565,10 +604,14 @@ class WorkloadGui:
         except OSError as exc:
             messagebox.showerror("输出目录不可用", f"无法使用结果保存位置：{exc}\n建议选择“文档”中的文件夹。")
             return None
+        has_images = any(
+            not item.get("is_manual") and Path(item["path"]).suffix.lower() in IMAGE_SUFFIXES
+            for item in supported
+        )
         return {
             "template": template, "materials": supported, "target_month": target_month,
             "output": output.resolve(), "teacher": self.teacher_var.get().strip(),
-            "aliases": split_aliases(self.aliases_var.get()), "ocr": self.ocr_var.get(),
+            "aliases": split_aliases(self.aliases_var.get()), "ocr": has_images,
         }
 
     def start_preview(self):
@@ -578,7 +621,7 @@ class WorkloadGui:
         for item in self.materials:
             if item.get("supported"):
                 suffix = Path(item["path"]).suffix.lower()
-                item["status"] = "待 OCR 解析" if self.ocr_var.get() and suffix in {".jpg", ".jpeg", ".png"} else "待解析"
+                item["status"] = "待 OCR 解析" if suffix in IMAGE_SUFFIXES else "待解析"
         self._refresh_material_tree()
         self._set_busy(True, "正在解析材料并生成预览...")
         self.flow_var.set("正在生成预览")
@@ -613,7 +656,10 @@ class WorkloadGui:
             "output": str((validated["output"] if validated else Path(self.output_var.get())).resolve()),
             "teacher": validated["teacher"] if validated else self.teacher_var.get().strip(),
             "aliases": tuple(validated["aliases"] if validated else split_aliases(self.aliases_var.get())),
-            "ocr": validated["ocr"] if validated else self.ocr_var.get(),
+            "ocr": validated["ocr"] if validated else any(
+                not item.get("is_manual") and Path(item["path"]).suffix.lower() in IMAGE_SUFFIXES
+                for item in self.materials if item.get("supported")
+            ),
         }
 
     def _on_preview(self, result):
@@ -635,9 +681,7 @@ class WorkloadGui:
                 item["status"] = "已解析"
             elif item["name"] in ocr_failed_names:
                 item["status"] = "OCR 失败，可手工补录"
-            elif Path(item["path"]).suffix.lower() in {".jpg", ".jpeg", ".png"} and not self.ocr_var.get():
-                item["status"] = "图片已导入，未启用 OCR，需手工补录"
-            elif Path(item["path"]).suffix.lower() in {".jpg", ".jpeg", ".png"} and self.ocr_var.get() and item["name"] in scanned_names:
+            elif Path(item["path"]).suffix.lower() in IMAGE_SUFFIXES and item["name"] in scanned_names:
                 item["status"] = "OCR 已解析"
             elif item["name"] in failed_names:
                 item["status"] = "解析失败"
@@ -667,6 +711,7 @@ class WorkloadGui:
     def _fill_results(self, result):
         for tree in (self.preview_tree, self.excluded_tree, self.summary_tree):
             tree.delete(*tree.get_children())
+            tree.empty_label.place_forget()
         for index, record in enumerate(result["included"], 1):
             weekday = ""
             try:
@@ -681,16 +726,22 @@ class WorkloadGui:
                 "需确认" if record.needs_confirmation or record.hours is None else "否",
                 record.confirmation_note or record.context,
             ), tags=(tag,))
+        if not result["included"]:
+            self._set_empty_state(self.preview_tree, "当前月份没有待写入课程，请检查材料和目标月份。")
         for record in result["excluded"]:
             self.excluded_tree.insert("", "end", values=(
                 record.date, record.course_name, record.teacher, record.source_file,
                 record.exclusion_reason or record.status, record.confirmation_note or record.context,
             ))
+        if not result["excluded"]:
+            self._set_empty_state(self.excluded_tree, "没有课程被排除。")
         for item in result["assessment_summary"]:
             self.summary_tree.insert("", "end", values=(
                 item["班级/项目"], item["子分类"], item.get("明细日期", ""),
                 f"{item['明细条数']}条", f"{display_hours(item['课时'])}课时", item["预计写入单元格"],
             ))
+        if not result["assessment_summary"]:
+            self._set_empty_state(self.summary_tree, "当前预览没有考核汇总。")
         training = [record for record in result["included"] if record.category == "培训"]
         assessment = [record for record in result["included"] if record.category == "考核"]
         training_hours = sum(record.hours or 0 for record in training)
@@ -809,8 +860,6 @@ class WorkloadGui:
                     self._on_write(payload)
                 elif kind == "error":
                     self._on_error(payload)
-                elif kind == "ocr_check":
-                    self._on_ocr_self_check(payload)
         except queue.Empty:
             pass
         self.root.after(120, self._poll_events)
@@ -819,7 +868,7 @@ class WorkloadGui:
         self.busy = busy
         self.status_var.set(status)
         state = "disabled" if busy else "normal"
-        for button in (self.preview_button, self.upload_template_button, self.upload_material_button, self.folder_button, self.open_dir_button, self.ocr_check_button):
+        for button in (self.preview_button, self.upload_template_button, self.upload_material_button, self.folder_button, self.open_dir_button):
             button.configure(state=state)
         self.write_button.configure(state="disabled" if busy or not self.last_preview else "normal")
 
@@ -881,30 +930,6 @@ class WorkloadGui:
     def clear_log(self):
         self.log_text.delete("1.0", "end")
 
-    def start_ocr_self_check(self):
-        if self.busy:
-            return
-        self._set_busy(True, "正在检测 OCR 组件...")
-        threading.Thread(target=self._ocr_self_check_worker, daemon=True).start()
-
-    def _ocr_self_check_worker(self):
-        try:
-            self.events.put(("ocr_check", ocr_self_check()))
-        except Exception as exc:
-            self.events.put(("ocr_check", {
-                "available": False, "checks": {}, "errors": [str(exc)],
-            }))
-
-    def _on_ocr_self_check(self, result):
-        self._set_busy(False, "OCR 自检完成")
-        lines = [f"{name}：{value}" for name, value in result.get("checks", {}).items()]
-        if result.get("available"):
-            lines.extend(["", "结论：OCR 可用，可以识别 JPG/PNG 照片课表。"])
-            messagebox.showinfo("OCR 自检", "\n".join(lines))
-        else:
-            lines.extend(["", *result.get("errors", []), "", "OCR 组件不可用。你仍可以上传图片作为核对材料，并使用手工补录功能。"])
-            messagebox.showwarning("OCR 自检", "\n".join(lines))
-
     def show_help(self):
         messagebox.showinfo("使用说明", "1. 上传工作量表模板\n2. 上传课表、通知、PDF、Excel 或图片材料\n3. 选择年份、月份和教师\n4. 点击“生成预览”并核对右侧结果\n5. 点击“生成最终 Excel”\n\n程序会自动管理 workspace，无需手动整理目录。")
 
@@ -918,7 +943,6 @@ class WorkloadGui:
         self.month_var.set(f"{int(settings.get('month') or date.today().month):02d}")
         self.teacher_var.set(settings.get("teacher_name") or self.teacher_var.get())
         self.aliases_var.set(settings.get("teacher_aliases") or self.aliases_var.get())
-        self.ocr_var.set(bool(settings.get("enable_ocr", self.ocr_var.get())))
         template = Path(settings.get("template", "")) if settings.get("template") else None
         if template and template.exists() and template.suffix.lower() in {".xls", ".xlsx"}:
             self.template_var.set(str(template))
@@ -958,7 +982,6 @@ class WorkloadGui:
                 "month": self.month_var.get(),
                 "teacher_name": self.teacher_var.get(),
                 "teacher_aliases": self.aliases_var.get(),
-                "enable_ocr": self.ocr_var.get(),
             })
         except OSError:
             pass
